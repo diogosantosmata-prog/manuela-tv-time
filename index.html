@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1F6FEB"><title>Manuela · TV Time · v39</title>
+<meta name="theme-color" content="#1F6FEB"><title>Manuela · TV Time · v40</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -374,10 +374,22 @@ function tvSeasonBlob(it){const m=tvSeasonNames(it);return m?Object.values(m).jo
 function _tvEdItem(){return (typeof tvEditId!=='undefined'&&tvEditId)?((tv.items||[]).find(x=>x.id===tvEditId)||{}):(tvPicked&&tvPicked.item)||{};}
 const SEGNAME={prot:'🍗 Proteína',carb:'🍚 Carbo',gord:'🫒 Gordura',veg:'🥦 Vegetais',fruta:'🍓 Frutas',lat:'🥛 Laticínio'};
 const $=s=>document.querySelector(s);
-const PROTECT={'dieta-mercado':1,'dieta-todo':1,'dieta-todo-d':1,'dieta-gastos':1,'dieta-lembrar':1,'dieta-livros':1,'dieta-cal':1,'dieta-diogo':1};
-function _len(k,raw){try{const v=(typeof raw==='string')?JSON.parse(raw):raw;if(v==null)return 0;if(Array.isArray(v))return v.length;if(k==='dieta-livros')return ((v.items)||[]).length;if(k==='dieta-cal')return ((v.ev)||[]).length+((v.tags)||[]).length;if(k==='dieta-diogo')return ((v.ev)||[]).length;return (v&&typeof v==='object')?Object.keys(v).length:0;}catch(e){return 0;}}
-function _bak(k){try{if(!PROTECT[k])return;const v=localStorage.getItem(k);if(v!=null&&_len(k,v)>0)localStorage.setItem(k+'.bak',v);}catch(e){}}
-const ls={get:(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}try{_bak(k)}catch(e){}try{if(typeof schedulePush==='function'&&k.indexOf('dieta-')===0)schedulePush()}catch(e){}}};
+/* 'dieta-tv' NAO estava aqui — por isso a perda da v39 nao tinha de onde voltar.
+   E' a chave com mais trabalho humano acumulado do app (milhares de episodios
+   marcados a mao); era a primeira que deveria estar protegida. */
+const PROTECT={'dieta-mercado':1,'dieta-todo':1,'dieta-todo-d':1,'dieta-gastos':1,'dieta-lembrar':1,'dieta-livros':1,'dieta-cal':1,'dieta-diogo':1,'dieta-tv':1,'dieta-tv-hist':1};
+function _len(k,raw){try{const v=(typeof raw==='string')?JSON.parse(raw):raw;if(v==null)return 0;if(Array.isArray(v))return v.length;if(k==='dieta-livros')return ((v.items)||[]).length;if(k==='dieta-cal')return ((v.ev)||[]).length+((v.tags)||[]).length;if(k==='dieta-diogo')return ((v.ev)||[]).length;if(k==='dieta-tv')return ((v.items)||[]).length;return (v&&typeof v==='object')?Object.keys(v).length:0;}catch(e){return 0;}}
+/* Guarda o estado ANTERIOR, e so' deixa o backup encolher se o usuario mandar.
+   Sem a comparacao com o backup atual, bastavam duas escritas depois de uma perda
+   para o proprio backup virar copia do estado ja' vazio: a primeira salvaria o bom,
+   a segunda o substituiria pelo ruim. Mantendo sempre o mais rico, o botao de
+   restaurar continua tendo para onde voltar. */
+function _bak(k){try{if(!PROTECT[k])return;const v=localStorage.getItem(k);if(v==null)return;const n=_len(k,v);if(n<=0)return;const ant=localStorage.getItem(k+'.bak');if(ant!=null&&_len(k,ant)>n)return;localStorage.setItem(k+'.bak',v);}catch(e){}}
+/* ⚠️ _bak ANTES da escrita. Estava depois: lia localStorage.getItem(k) logo apos o
+   setItem, entao o '.bak' virava copia do valor NOVO. Era espelho, nao backup — o
+   estado anterior ja tinha ido embora quando a copia era feita. Agora guarda o que
+   estava la' antes de sobrescrever, que e' o unico momento em que ele ainda existe. */
+const ls={get:(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},set:(k,v)=>{try{_bak(k)}catch(e){}try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}try{if(typeof schedulePush==='function'&&k.indexOf('dieta-')===0)schedulePush()}catch(e){}}};
 let consumed=ls.get('dieta-consumed',{}),edits=ls.get('dieta-edits',{}),notes=ls.get('dieta-notes',{}),subs=ls.get('dieta-subs',{}),water=ls.get('dieta-water',{}),wlog=ls.get('dieta-log',{}),weights=ls.get('dieta-weight',{}),removed=ls.get('dieta-removed',{}),bal=ls.get('dieta-bal',{}),added=ls.get('dieta-added',{}),customFoods=ls.get('dieta-custom',{}),cupML=ls.get('dieta-cup',250),autoBal=ls.get('dieta-autobal',true);Object.assign(FOODS,customFoods);
 let cal=ls.get('dieta-cal',{tags:[],ev:[]}),todos=ls.get('dieta-todo',[]),todosD=ls.get('dieta-todo-d',[]),lembrar=ls.get('dieta-lembrar',[]),livros=ls.get('dieta-livros',{items:[]});
 let mercado=ls.get('dieta-mercado',[]);let diogo=ls.get('dieta-diogo',null);if(!diogo||!Array.isArray(diogo.ev)){diogo={v:1,ev:DGSEED.map((x,i)=>({id:'dg'+i,d:x[0],t:x[1]}))};ls.set('dieta-diogo',diogo);}
@@ -389,7 +401,21 @@ const UI_COLORS=[['accent','Cor de destaque'],['bg','Fundo'],['card','Cartões']
 function toHex(v){v=String(v||'').trim();if(/^#[0-9a-fA-F]{6}$/.test(v))return v;if(/^#[0-9a-fA-F]{3}$/.test(v))return '#'+v[1]+v[1]+v[2]+v[2]+v[3]+v[3];return '#000000';}
 function applyUIColors(){const c=uiCfg.colors||{};const r=document.body.style;for(const pr of UI_COLORS){const k=pr[0];if(c[k])r.setProperty('--'+k,c[k]);else r.removeProperty('--'+k);}if(c.accent)r.setProperty('--accent2','color-mix(in srgb, '+c.accent+' 35%, var(--bg))');else r.removeProperty('--accent2');if(c.bg){const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.setAttribute('content',c.bg);}}
 function applyUI(){const tl=uiCfg.tiles||{};for(const [id,de,dn,ttl] of UI_TILES){const o=tl[id]||{};const el=$("#"+id);if(el){const hi=el.querySelector('.hi'),hl=el.querySelector('.hl');if(hi)hi.textContent=o.e||de;if(hl)hl.textContent=o.n||dn;}if(ttl&&(o.e||o.n)){const t=$("#"+ttl);if(t)t.textContent=(o.e||de)+' '+(o.n||dn);}}applyUIColors();}
-const TVVER=5;function tvKey(x){const ty=((x&&x.ty)||'filme');return ty[0]+':'+((x&&(x.tvdb||x.imdb))||tvNorm(x&&x.t).replace(/ /g,'_'));}function tvTKey(x){return ((x&&x.ty)||'')+'|'+tvNorm(x&&x.t);}function tvUnionW(a,b){const o={};for(const k in(a||{}))o[k]=(a[k]||[]).slice();for(const k in(b||{})){const st=new Set(o[k]||[]);(b[k]||[]).forEach(x=>st.add(x));o[k]=[...st].sort((x,y)=>x-y);}return o;}function seedItems(){return (typeof TVSEED!=='undefined'?TVSEED:[]).map(x=>Object.assign({id:tvKey(x)},x));}function tvMergeUser(s,o){const m=Object.assign({},s);if(!o)return m;if(o.w&&Object.keys(o.w).length)m.w=tvUnionW(s.w,o.w);if(o.wr&&Object.keys(o.wr).length)m.wr=tvUnionWR(s.wr,o.wr);if(o.fav)m.fav=true;if(o.r)m.r=o.r;if(o.note)m.note=o.note;if(o.rw&&o.rw>(s.rw||0))m.rw=o.rw;if(o.st)m.st=o.st;if(o.u)m.u=o.u;if(o.br!=null)m.br=o.br;return m;}function tvMergeLocal(lt){if(!lt||!Array.isArray(lt.items)||!tv||!Array.isArray(tv.items))return;const byId={},byT={};tv.items.forEach(it=>{byId[it.id]=it;byT[tvTKey(it)]=it;});let ch=false;lt.items.forEach(o=>{const cur=byId[o.id]||byT[tvTKey(o)];if(!cur){tv.items.push(o);ch=true;return;}if(o.w&&Object.keys(o.w).length){const u=tvUnionW(cur.w,o.w);if(JSON.stringify(u)!==JSON.stringify(cur.w||{})){cur.w=u;ch=true;}}if(o.wr&&Object.keys(o.wr).length){const uw=tvUnionWR(cur.wr,o.wr);if(JSON.stringify(uw)!==JSON.stringify(cur.wr||{})){cur.wr=uw;ch=true;}}if(o.fav&&!cur.fav){cur.fav=true;ch=true;}if((o.rw||0)>(cur.rw||0)){cur.rw=o.rw;ch=true;}if((o.u||0)>(cur.u||0)){if(o.st&&o.st!==cur.st){cur.st=o.st;ch=true;}if(o.r!=null&&o.r!==cur.r){cur.r=o.r;ch=true;}if(o.note&&o.note!==cur.note){cur.note=o.note;ch=true;}if(o.seasons&&o.seasons.length){cur.seasons=o.seasons;ch=true;}cur.u=o.u;}});if(ch)ls.set('dieta-tv',tv);}function migrateTV(){let t=ls.get('dieta-tv',null);const seed=seedItems();if(!seed.length){if(t&&Array.isArray(t.items))tv=t;return;}if(!t||!Array.isArray(t.items)){tv={v:TVVER,items:seed};ls.set('dieta-tv',tv);return;}/* ⚠️ AQUI havia `if(t.v===TVVER){tv=t;return;}` — a saida antecipada que
+const TVVER=5;function tvKey(x){const ty=((x&&x.ty)||'filme');return ty[0]+':'+((x&&(x.tvdb||x.imdb))||tvNorm(x&&x.t).replace(/ /g,'_'));}function tvTKey(x){return ((x&&x.ty)||'')+'|'+tvNorm(x&&x.t);}function tvUnionW(a,b){const o={};for(const k in(a||{}))o[k]=(a[k]||[]).slice();for(const k in(b||{})){const st=new Set(o[k]||[]);(b[k]||[]).forEach(x=>st.add(x));o[k]=[...st].sort((x,y)=>x-y);}return o;}function seedItems(){return (typeof TVSEED!=='undefined'?TVSEED:[]).map(x=>Object.assign({id:tvKey(x)},x));}/* ⚠️ REMAPEAR ANTES DE UNIR — foi isto que apagou o progresso da Manuela na v39.
+   `w` guarda INDICE POSICIONAL dentro da temporada, e `m` nasce de Object.assign({},s):
+   ou seja, o item mesclado adota as `seasons` do SEED. Unir `o.w` (indices na forma
+   ANTIGA) dentro da forma NOVA desloca cada marcacao — e as que caem fora do novo
+   tamanho somem sem erro nenhum. Como a v39 passou a rodar o merge SEMPRE, isso deixou
+   de ser um caso de borda e virou perda a cada carregamento.
+   `o.seasons` e' a unica testemunha da forma antiga, e ela morre no fim desta funcao;
+   por isso o remapeamento tem de acontecer AQUI, antes da uniao. */
+function tvFormaDif(a,b){return (a||[]).map(s=>s.n+':'+(s.e||0)).join(',')!==(b||[]).map(s=>s.n+':'+(s.e||0)).join(',');}
+function tvMergeUser(s,o){const m=Object.assign({},s);if(!o)return m;
+if(o.seasons&&o.seasons.length&&s.seasons&&s.seasons.length&&tvFormaDif(o.seasons,s.seasons)){
+  const cp={seasons:o.seasons,w:o.w,wr:o.wr};
+  try{tvRemapW(cp,o.seasons,s.seasons);o=Object.assign({},o,{w:cp.w,wr:cp.wr});}catch(e){}
+}
+if(o.w&&Object.keys(o.w).length)m.w=tvUnionW(s.w,o.w);if(o.wr&&Object.keys(o.wr).length)m.wr=tvUnionWR(s.wr,o.wr);if(o.fav)m.fav=true;if(o.r)m.r=o.r;if(o.note)m.note=o.note;if(o.rw&&o.rw>(s.rw||0))m.rw=o.rw;if(o.st)m.st=o.st;if(o.u)m.u=o.u;if(o.br!=null)m.br=o.br;return m;}function tvMergeLocal(lt){if(!lt||!Array.isArray(lt.items)||!tv||!Array.isArray(tv.items))return;const byId={},byT={};tv.items.forEach(it=>{byId[it.id]=it;byT[tvTKey(it)]=it;});let ch=false;lt.items.forEach(o=>{const cur=byId[o.id]||byT[tvTKey(o)];if(!cur){tv.items.push(o);ch=true;return;}if(o.w&&Object.keys(o.w).length){const u=tvUnionW(cur.w,o.w);if(JSON.stringify(u)!==JSON.stringify(cur.w||{})){cur.w=u;ch=true;}}if(o.wr&&Object.keys(o.wr).length){const uw=tvUnionWR(cur.wr,o.wr);if(JSON.stringify(uw)!==JSON.stringify(cur.wr||{})){cur.wr=uw;ch=true;}}if(o.fav&&!cur.fav){cur.fav=true;ch=true;}if((o.rw||0)>(cur.rw||0)){cur.rw=o.rw;ch=true;}if((o.u||0)>(cur.u||0)){if(o.st&&o.st!==cur.st){cur.st=o.st;ch=true;}if(o.r!=null&&o.r!==cur.r){cur.r=o.r;ch=true;}if(o.note&&o.note!==cur.note){cur.note=o.note;ch=true;}if(o.seasons&&o.seasons.length){cur.seasons=o.seasons;ch=true;}cur.u=o.u;}});if(ch)ls.set('dieta-tv',tv);}function migrateTV(){let t=ls.get('dieta-tv',null);const seed=seedItems();if(!seed.length){if(t&&Array.isArray(t.items))tv=t;return;}if(!t||!Array.isArray(t.items)){tv={v:TVVER,items:seed};ls.set('dieta-tv',tv);return;}/* ⚠️ AQUI havia `if(t.v===TVVER){tv=t;return;}` — a saida antecipada que
    congelava o aparelho: uma vez gravado v=5, o seed publicado nunca mais
    era lido, e dois navegadores divergiam para sempre. O merge agora roda
    SEMPRE; ele e idempotente e barato (uniao + carimbo `u`). */const oldById={},oldByT={};(t.items||[]).forEach(o=>{if(o&&o.id)oldById[o.id]=o;oldByT[tvTKey(o)]=o;});const seedT=new Set(seed.map(s=>tvTKey(s)));const merged=seed.map(s=>tvMergeUser(s,oldById[s.id]||oldByT[tvTKey(s)]));const extra=(t.items||[]).filter(o=>!seedT.has(tvTKey(o)));tv={v:TVVER,items:merged.concat(extra)};ls.set('dieta-tv',tv);}let tv={items:[]};migrateTV();
